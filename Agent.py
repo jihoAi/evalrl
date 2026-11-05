@@ -31,24 +31,24 @@ class Agent(abc.ABC):
     pass
 
   def save(self,path:str):
-    saved_params = {}
-    for name, network in self.networks:
-      saved_params[name] = network.state_dict()
-    for name, optimizer in self.optimizers:
-      saved_params[name] = optimizer.state_dict()
-    saved_params['global_timestep'] = self.global_timestep
+    saved_params = {
+      'networks' : {name:network.state_dict() for name,network in self.networks.items()},
+      'optimizers' : {name:optim.state_dict() for name,optim in self.optimizers.items()},
+      'global_timestep' : self.global_timestep
+    }
     torch.save(saved_params,path,map_location = self.device)
 
   def load(self,path:str):
     ckpt = torch.load(path,weights_only=True)
-    self.networks = ckpt['networks']
-    self.optimizers = ckpt['optimizers']
+    for name,network in self.networks.items:
+      network.load_state_dict(ckpt['networks'][name]
+    for name,optim in self.optimizers.items:
+      optim.load_state_dict(ckpt['optimizers'][name])
     self.global_timestep = ckpt['global_timestep']
     
   
   def on_step(self,global_timestep):
     self.global_timestep = global_timestep
-    pass
 
   def get_state(self)->dict[str,float]:
     pass
