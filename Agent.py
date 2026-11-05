@@ -36,13 +36,13 @@ class Agent(abc.ABC):
       'optimizers' : {name:optim.state_dict() for name,optim in self.optimizers.items()},
       'global_timestep' : self.global_timestep
     }
-    torch.save(saved_params,path,map_location = self.device)
+    torch.save(saved_params,path)
 
   def load(self,path:str):
-    ckpt = torch.load(path,weights_only=True)
-    for name,network in self.networks.items:
-      network.load_state_dict(ckpt['networks'][name]
-    for name,optim in self.optimizers.items:
+    ckpt = torch.load(path,weights_only=True,map_location = self.device)
+    for name,network in self.networks.items():
+      network.load_state_dict(ckpt['networks'][name])
+    for name,optim in self.optimizers.items():
       optim.load_state_dict(ckpt['optimizers'][name])
     self.global_timestep = ckpt['global_timestep']
     
@@ -51,7 +51,7 @@ class Agent(abc.ABC):
     self.global_timestep = global_timestep
 
   def get_state(self)->dict[str,float]:
-    pass
+    return dict()
 
   def on_episode_end(self,info):
     pass
