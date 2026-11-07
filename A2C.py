@@ -12,13 +12,13 @@ import numpy as np
 
 class A2CAgent(Agent):
   def __init__(self,obs_space,action_space,config,device):
-    super().__init__(obs_space,action_space,config,device):
+    super().__init__(obs_space,action_space,config,device)
 
     self.rollout_buffer = RolloutBuffer(
       num_envs=config.num_envs,
       num_steps=config.num_steps,
-      obs_shape=obs_space.single_observation_space.shape,
-      act_shape=action_space.single_action_space.shape,
+      obs_shape=obs_space.shape,
+      act_shape=action_space.shape,
       device = device
     )
 
@@ -34,13 +34,15 @@ class A2CAgent(Agent):
       output_dim = 1,
       hidden = config.hidden
     ).to(device)
-
+    
     self.optimizers['optim'] = optim.Adam([
-        {'params':self.networks['actor']},
-        {'params':self.networks['critic']}
+        {'params':self.networks['actor'].parameters()},
+        {'params':self.networks['critic'].parameters()}
       ],lr=config.learning_rate
     )
-
+    
+    self.clip_params = [p for g in self.optimizers['optim'].param_groups for p in g['params']]
+    
     self._last_log_prob = None
     self._last_value = None
 
@@ -57,8 +59,7 @@ class A2CAgent(Agent):
 
   def observe(self, obs: np.ndarray, next_obs: np.ndarray,acts: np.ndarray, rewards: np.ndarray, terms: np.ndarray, truncs: np.ndarray):
     #환경은 samestep사용한다고 가정
-
-    self.rollout_buffer.add(obs,acts,self._last_log_prob,self._last_value,rewards,terms,truncs)
+    self.rollout_buffer.add(obs,next_obs,acts,self._last_log_prob,self._last_value,rewards,terms,truncs)
     self._last_log_prob = None
     self._last_value = None
 
@@ -69,7 +70,7 @@ class A2CAgent(Agent):
     if self.ready_to_update():
       with torch.no_grad():
         next_obs_tensor = self.rollout_buffer.next_obs_tensor()
-        next_values = self.networks['critic'](next_obs_tensor).cpu().numpy()
+        next_values = self.networks['critic'](next_obs_tensor).cpu().numpy().squeeze(-1)
       returns,advantages = compute_advantages(
         self.rollout_buffer.rewards,
         self.rollout_buffer.values,
@@ -81,26 +82,29 @@ class A2CAgent(Agent):
       )
       self.rollout_buffer.set_advantages(advantages,returns)
 
-    batches = self.rollout_buffer.make_batch()
-    logits = self.networks['actor'](batches['obs'])
-    dist = Categorical(logits=logits)
-    log_probs = dist.log_prob(batches['actions'])
-    entropies = dist.entropy().mean()
-    values = self.networks['critic'](batches['obs']).squeeze(-1)
-
-    policy_loss = log_probs*batches['advantages'].mean()
-
-    value_loss = ((batches['returns']-values)**2).mean()
-
-    loss = -policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropies
-
-    self.optimizers['optim'].zero_grad()
-    self.optimizers['optim'].backward()
-    self.optimizers['optim'].step()
-
-    self.rollout_buffer.clear()
-
-    return {'policy_loss':policy_loss,'value_loss':value_loss,'entropy':entropies}
-    
-
-    
+      batches = self.rollout_buffer.make_batch()
+      logits = self.networks['actor'](batches['obs'])
+      dist = Categorical(logits=logits)
+      log_probs = dist.log_prob(batches['actions'])
+      entropies = dist.entropy().mean()
+      values = self.networks['critic'](batches['obs']).squeeze(-1)
+  
+      policy_loss = (log_probs*batches['advantages']).mean()
+  
+      value_loss = ((batches['returns']-values)**2).mean()
+  
+      loss = policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropies
+  
+      self.optimizers['optim'].zero_grad()
+      loss.backward()
+      grad_norm = torch.nn.utils.clip_grad_norm_(self.clip_params,max_norm=self.config.max_grad_norm)
+      self.optimizers['optim'].step()
+  
+      self.rollout_buffer.clear()
+  
+      return {'policy_loss':policy_loss.item(),'value_loss':value_loss.item(),'entropy':entropies.item(),'clip_grad_norm':grad_norm}
+    else:
+      return None
+      
+  
+      
