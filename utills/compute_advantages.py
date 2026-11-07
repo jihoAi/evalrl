@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 def compute_advantages(
   rewards:np.ndarray,
