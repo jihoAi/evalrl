@@ -102,7 +102,7 @@ class A2CAgent(Agent):
   
       value_loss = ((batches['returns']-values)**2).mean()
   
-      loss = policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropies
+      loss = -policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropies
   
       self.optimizers['optim'].zero_grad()
       loss.backward()
