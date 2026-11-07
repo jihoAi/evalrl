@@ -1,11 +1,13 @@
-import Agent from Agent
+from Agent import Agent
 
-import build_mlp from utils.build_mlp
-import RolloutBuffer from utils.rollout_buffer
+from utils.build_mlp import build_mlp 
+from utils.rollout_buffer import RolloutBuffer 
 
 import torch
 import torch.optim as optim
 from torch.distributions import Categorical
+
+import numpy as np
 
 class A2C(Agent):
   def __init__(self,obs_space,action_space,config,device):
@@ -15,18 +17,20 @@ class A2C(Agent):
       num_envs=config['num_envs'],
       num_steps=config['num_steps'],
       obs_shape=obs_space.single_observation_space.shape,
-      act_shape=action_space.single_action_space.shape
+      act_shape=action_space.single_action_space.shape,
+      device = device
+    )
 
     #Actor, Critic, optimizer 정의
-    self.netowrks['actor'] = build_mlp(
-      input_dim = obs_space.single_observation_space.shape,
-      output_dim = action_space.single_observation_space.n,
+    self.networks['actor'] = build_mlp(
+      input_dim = obs_space.shape[0],
+      output_dim = action_space.n,
       hidden = config['hidden']
     )
 
-    self.netowrks['critic'] = build_mlp(
-      input_dim = obs_space.single_observation_space.shape,
-      output_dim = action_space.single_observation_space.n,
+    self.networks['critic'] = build_mlp(
+      input_dim = obs_space.shape[0],
+      output_dim = action_space.n,
       hidden = config['hidden']
     )
 
@@ -36,7 +40,7 @@ class A2C(Agent):
     )
 
     self.optimizers['critic_optim'] = optim.Adam(
-      self.networks['actor'].parameters(),
+      self.networks['critic'].parameters(),
       lr=config['learning_rate']
     )
 
@@ -46,10 +50,10 @@ class A2C(Agent):
   def act(self,obs:np.ndarray,deterministic:bool):
     obs = torch.as_tensor(obs,dtype=torch.float32).to(self.device)
     logits = self.networks['actor'](obs)
-    dist = Categorical(logits=logtis)
+    dist = Categorical(logits=logits)
     actions = logits.argmax(-1) if deterministic else dist.sample()
-    self._last_log_prob = dist.log_prob(action)
-    with torch.no_gard()
+    self._last_log_prob = dist.log_prob(actions)
+    with torch.no_grad():
       self._last_value = self.networks['critic'](obs)
     return actions
 
@@ -57,8 +61,8 @@ class A2C(Agent):
     #환경은 samestep사용한다고 가정
     obs = torch.as_tensor(obs,dtype=torch.float32,device=self.device)
     next_obs = torch.as_tensor(next_obs,dtype=torch.float32,device=self.device)
-    acts = torch.as_tensor(acts,dtype=torch.long,devcie=self.device)
-    rewards = torch.as_tensor(acts,dtype=torch.float32,device=self.device)
+    acts = torch.as_tensor(acts,dtype=torch.long,device=self.device)
+    rewards = torch.as_tensor(rewards,dtype=torch.float32,device=self.device)
     terms = torch.as_tensor(terms,dtype=torch.float32,device=self.device)
     truncs = torch.as_tensor(truncs,dtype=torch.float32,device=self.device)
 
