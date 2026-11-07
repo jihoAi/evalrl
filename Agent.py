@@ -19,7 +19,7 @@ class Agent(abc.ABC):
 
   #transition을 버퍼에 저장
   @abc.abstractmethod
-  def observe(self,obs:np.ndarray,acts:np.ndarray,rewards:np.ndarray,next_obs:np.ndarray,terms:np.ndarray,truncs:np.ndarray):
+  def observe(self, obs: np.ndarray, next_obs: np.ndarray, acts: np.ndarray, rewards: np.ndarray, terms: np.ndarray, truncs: np.ndarray):
     pass
 
   @abc.abstractmethod
