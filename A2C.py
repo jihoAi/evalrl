@@ -59,7 +59,16 @@ class A2CAgent(Agent):
 
   def observe(self, obs: np.ndarray, next_obs: np.ndarray,acts: np.ndarray, rewards: np.ndarray, terms: np.ndarray, truncs: np.ndarray):
     #환경은 samestep사용한다고 가정
-    self.rollout_buffer.add(obs,next_obs,acts,self._last_log_prob,self._last_value,rewards,terms,truncs)
+    self.rollout_buffer.add(
+      obs=obs,
+      next_obs=next_obs,
+      actions=acts,
+      log_probs=self._last_log_prob,
+      values=self._last_value,
+      rewards=rewards,
+      terms=terms,
+      truncs=truncs
+    )
     self._last_log_prob = None
     self._last_value = None
 
