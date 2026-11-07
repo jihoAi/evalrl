@@ -17,10 +17,10 @@ class RolloutBuffer:
 
         shape = (num_steps, num_envs)
         self.obs = np.zeros(shape + obs_shape, dtype=np.float32)
+        self.next_obs = np.zeros(shape + obs_shape, dtype=np.float32)
         self.actions = np.zeros(shape + act_shape, dtype=act_dtype)
         self.log_probs = np.zeros(shape, dtype=np.float32)
         self.values = np.zeros(shape, dtype=np.float32)
-        self.next_values = np.zeros(shape, dtype=np.float32)
         self.rewards = np.zeros(shape, dtype=np.float32)
         self.terms = np.zeros(shape, dtype=bool)
         self.truncs = np.zeros(shape, dtype=bool)
@@ -30,18 +30,22 @@ class RolloutBuffer:
     def is_full(self) -> bool:
         return self.ptr == self.num_steps
 
-    def add(self, obs, actions, log_probs, values, next_values, rewards, terms, truncs):
+    def add(self, obs, next_obs, actions, log_probs, values, rewards, terms, truncs):
         if self.is_full():
             raise RuntimeError("RolloutBuffer is full. Call clear() after update.")
         self.obs[self.ptr] = obs
+        self.next_obs[self.ptr] = next_obs
         self.actions[self.ptr] = actions
         self.log_probs[self.ptr] = log_probs
         self.values[self.ptr] = values
-        self.next_values[self.ptr] = next_values
         self.rewards[self.ptr] = rewards
         self.terms[self.ptr] = terms
         self.truncs[self.ptr] = truncs
         self.ptr += 1
+
+    def next_obs_tensor(self) -> torch.Tensor:
+        # (num_steps, num_envs, *obs_shape) 그대로 반환. critic은 앞 차원 개수와 무관하게 동작
+        return torch.as_tensor(self.next_obs, device=self.device)
 
     def set_advantages(self, advantages: np.ndarray, returns: np.ndarray):
         self.advantages[:] = advantages
