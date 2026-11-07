@@ -44,6 +44,7 @@ class A2CAgent(Agent):
     self._last_log_prob = None
     self._last_value = None
 
+
   def act(self,obs:np.ndarray,deterministic:bool)->np.ndarray:
     obs = torch.as_tensor(obs,dtype=torch.float32).to(self.device)
     with torch.no_grad():
@@ -72,7 +73,34 @@ class A2CAgent(Agent):
       returns,advantages = compute_advantages(
         self.rollout_buffer.rewards,
         self.rollout_buffer.values,
-        
+        next_values,
+        self.rollout_buffer.terms,
+        self.rollout_buffer.truncs,
+        self.config.gamma,
+        self.config.gae_lambda
       )
+      self.rollout_buffer.set_advantages(advantages,returns)
+
+    batches = self.rollout_buffer.make_batch()
+    logits = self.networks['actor'](batches['obs'])
+    dist = Categorical(logits=logits)
+    log_probs = dist.log_prob(batches['actions'])
+    entropies = dist.entropy().mean()
+    values = self.networks['critic'](batches['obs']).squeeze(-1)
+
+    policy_loss = log_probs*batches['advantages'].mean()
+
+    value_loss = ((batches['returns']-values)**2).mean()
+
+    loss = -policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropies
+
+    self.optimizers['optim'].zero_grad()
+    self.optimizers['optim'].backward()
+    self.optimizers['optim'].step()
+
+    self.rollout_buffer.clear()
+
+    return {'policy_loss':policy_loss,'value_loss':value_loss,'entropy':entropies}
+    
 
     
