@@ -1,8 +1,8 @@
-from Agent import Agent
+from evalrl.agents.base import Agent
 
-from utils.build_mlp import build_mlp 
-from utils.rollout_buffer import RolloutBuffer
-from utils.compute_advantages import compute_advantages
+from evalrl.utils.build_mlp import build_mlp 
+from evalrl.utils.rollout_buffer import RolloutBuffer
+from evalrl.utils.compute_advantages import compute_advantages
 
 import torch
 import torch.optim as optim
