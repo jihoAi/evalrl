@@ -12,8 +12,11 @@
 | `A2CAgent` | ✅ 완료 (CartPole 학습 확인) |
 | `PPOAgent` (`A2CAgent` 상속) | ✅ 완료 (CartPole 500 도달) |
 | Rollout buffer, GAE | ✅ 완료 |
-| Config (dataclass) | ✅ 완료 |
-| Trainer · Evaluator · Logger | 🚧 진행 중 |
+| Config (dataclass, `configs.py`) | ✅ 완료 |
+| env factory (SAME_STEP vector env) | ✅ 완료 |
+| Evaluator | ✅ 완료 (테스트 통과) |
+| Logger (CSV) | ✅ 완료 (테스트 통과) |
+| Trainer | 🚧 진행 중 |
 | `DQNAgent` | ⏳ 예정 |
 | Runner (algo × seed) · 분석 스크립트 | ⏳ 예정 |
 
@@ -36,6 +39,8 @@
 evalrl/                     (저장소 루트)
 ├── pyproject.toml
 ├── README.md
+├── tests/
+│   └── test_logger_evaluator.py
 └── evalrl/                 (패키지)
     ├── __init__.py
     ├── configs.py          CommonConfig, A2CConfig, PPOConfig
@@ -49,7 +54,12 @@ evalrl/                     (저장소 루트)
     │   ├── build_mlp.py
     │   ├── rollout_buffer.py
     │   └── compute_advantages.py
-    └── core/               (예정) env_factory, trainer, evaluator, logger
+    └── core/
+        ├── __init__.py
+        ├── env_factory.py  make_train_envs, make_eval_env
+        ├── evaluator.py    Evaluator
+        ├── logger.py       Logger
+        └── trainer.py      (작성 중)
 ```
 
 ## 설치
@@ -75,33 +85,27 @@ else:
 !pip install -q -e {REPO}
 ```
 
-설치 후 **런타임 → 세션 다시 시작**을 한 번 해야 import됩니다. 코드 수정을 바로 반영하려면:
+설치 후 **런타임 → 세션 다시 시작**을 한 번 해야 import됩니다.
 
-```python
-%load_ext autoreload
-%autoreload 2
-```
+코드를 고친 뒤에는 GitHub에 push → 위 셀(pull) 실행 → 세션 다시 시작 순서로 반영합니다. Colab(Python 3.12+)에서는 `%autoreload`가 `imp` 모듈 오류로 동작하지 않으므로 쓰지 않습니다. `!python ...`으로 실행하는 스크립트는 매번 새 프로세스라 재시작 없이 최신 코드가 반영됩니다.
+
+> Colab에서 파일을 직접 고치면 다음 `git pull`이 거부될 수 있습니다. 수정은 GitHub 쪽에서만 하고 Colab은 pull만 하세요.
 
 ## 빠른 시작
 
 ```python
-import gymnasium as gym
 import numpy as np
 import torch
-from gymnasium.vector import AutoresetMode
 
 from evalrl.agents import PPOAgent
 from evalrl.configs import PPOConfig
+from evalrl.core.env_factory import make_train_envs, make_eval_env
+from evalrl.core.evaluator import Evaluator
 
 config = PPOConfig(total_timestep=200_000)
 device = torch.device("cpu")
 
-envs = gym.make_vec(
-    config.env_id,
-    num_envs=config.num_envs,
-    vectorization_mode="sync",
-    vector_kwargs={"autoreset_mode": AutoresetMode.SAME_STEP},
-)
+envs = make_train_envs(config)   # SAME_STEP vector env, config.num_envs개
 agent = PPOAgent(envs.single_observation_space, envs.single_action_space, config, device)
 
 obs, _ = envs.reset(seed=config.seed)
@@ -128,9 +132,34 @@ while global_timestep < config.total_timestep:
     obs = next_obs  # 다음 행동은 reset된 원본 obs로
 
 agent.save("ppo_cartpole.pt")
+
+# 평가: 별도 eval env, 에피소드마다 고정 seed, deterministic
+evaluator = Evaluator(make_eval_env(config), config)
+print(evaluator.evaluate(agent))   # {'eval_return_mean': ..., 'eval_return_std': ..., 'eval_length_mean': ...}
 ```
 
 Trainer가 완성되면 이 루프는 Trainer 한 줄로 대체됩니다.
+
+## 기록 (Logger)
+
+```python
+from evalrl.core.logger import Logger
+
+logger = Logger(config.run_dir)
+logger.log("train", step, {"policy_loss": ..., "value_loss": ...})   # → run_dir/train.csv
+logger.log("eval", step, evaluator.evaluate(agent))                  # → run_dir/eval.csv
+logger.close()
+```
+
+이름(`"train"`, `"eval"`)마다 CSV가 따로 생기고, 첫 호출의 key가 header가 됩니다. 매 기록마다 flush하므로 학습이 중간에 끊겨도 그때까지의 기록이 남습니다.
+
+## 테스트
+
+```bash
+python tests/test_logger_evaluator.py
+```
+
+Logger(header · 파일 분리 · flush · 새 key 오류)와 Evaluator(반환 형식 · 결정성 · 버퍼/step/가중치 무변화)를 확인합니다.
 
 ## Agent 인터페이스
 
