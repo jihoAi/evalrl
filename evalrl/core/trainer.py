@@ -72,9 +72,6 @@ class Trainer:
       return result
     finally:
       self.logger.close()
-      return None
-        
-          
 
   def _real_next_obs(self,next_obs,infos)->np.ndarray:
     real_next_obs = next_obs.copy()
