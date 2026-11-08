@@ -1,4 +1,4 @@
-from A2C import A2CAgent
+from evalrl.agents.a2c import A2CAgent
 
 import torch
 from torch.distributions import Categorical
