@@ -29,9 +29,9 @@ class Trainer:
     step = self.agent.global_timestep
     self.start_time = time.time()
     self.last_log_time = time.time()
-    obs,_ = self.envs.reset(seed=self.config.seed)
-    self._evaluate(step)
     try:
+      obs,_ = self.envs.reset(seed=self.config.seed)
+      result = self._evaluate(step)
       while step < self.config.total_timestep:
         acts = self.agent.act(obs,deterministic=False)
         next_obs, rewards, terms, truncs, infos = self.envs.step(acts)
@@ -60,14 +60,15 @@ class Trainer:
 
         if step - self.last_eval >= self.config.eval_interval:
           self.last_eval = step
-          self._evaluate(step)
+          result = self._evaluate(step)
 
         if step- self.last_save >= self.config.save_interval:
           self.last_save = step
           self._save(step)
         
         obs = next_obs
-      result = self._evaluate(step)
+      if self.last_eval != step:
+        result = self._evaluate(step)
       self._save(step,final=True)
       return result
     finally:
