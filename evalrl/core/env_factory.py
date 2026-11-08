@@ -11,5 +11,5 @@ def make_train_envs(config):
   return _make(config,config.num_envs)
 
 def make_eval_env(config):
-  return _make(config.env_id,1)
+  return _make(config,1)
   
