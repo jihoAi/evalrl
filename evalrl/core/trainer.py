@@ -3,6 +3,7 @@ import os
 import numpy as np
 import time
 
+from evalrl.config_loader import save_config
 
 class Trainer:
   def __init__(self,agent,envs,config,evaluator,logger):
@@ -30,6 +31,7 @@ class Trainer:
     self.start_time = time.time()
     self.last_log_time = time.time()
     try:
+      save_config(self.config,os.path.join(self.config.run_dir,"config.yaml"))
       obs,_ = self.envs.reset(seed=self.config.seed)
       result = self._evaluate(step)
       while step < self.config.total_timestep:
