@@ -5,7 +5,7 @@ from torch.distributions import Categorical
 
 class PPOAgent(A2CAgent):
   def __init__(self,obs_space,action_space,config,device):
-    super().__init__()
+    super().__init__(obs_space,action_space,config,device)
 
   def update(self)->dict[str,float]:
     if self.ready_to_update():
