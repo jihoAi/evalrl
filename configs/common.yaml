@@ -1,1 +1,23 @@
+# 모든 알고리즘 공통 설정 (공정성 항목)
+# 비교 실험에서는 이 값들을 알고리즘별 YAML에서 덮어쓰지 않는다.
+# seed, run_dir은 Runner가 실행마다 채운다.
 
+env_id: CartPole-v1
+total_timestep: 500000
+num_envs: 8
+
+# 네트워크
+hidden: [64, 64]
+
+# 공통 학습 설정
+gamma: 0.99
+max_grad_norm: 0.5
+
+# 평가 (Evaluator)
+eval_episodes: 10
+eval_seed: 10000
+eval_interval: 10000
+
+# 기록 · 저장 (Logger, Trainer)
+log_interval: 1000
+save_interval: 50000

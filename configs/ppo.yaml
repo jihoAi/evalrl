@@ -1,0 +1,13 @@
+# PPO 고유 설정 (CleanRL 기본값 참고)
+# minibatch_size는 num_envs × num_steps (8 × 128 = 1024)를 나눠떨어지게
+
+num_steps: 128
+learning_rate: 0.00025
+gae_lambda: 0.95
+vf_coef: 0.5
+ent_coef: 0.01
+
+num_epochs: 4
+minibatch_size: 256
+clip_coef: 0.2
+norm_adv: true
