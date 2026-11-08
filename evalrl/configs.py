@@ -22,6 +22,10 @@ class CommonConfig:
     save_interval: int = 50_000
     run_dir: str = "runs/test"
 
+    def __post_init__(self):
+        self.hidden = tuple(self.hidden)
+            
+
 
 @dataclass
 class A2CConfig(CommonConfig):
@@ -35,7 +39,6 @@ class A2CConfig(CommonConfig):
 @dataclass
 class PPOConfig(A2CConfig):
     # A2C와 같은 필드는 기본값만 덮어씀
-    num_envs: int = 4
     num_steps: int = 128
     learning_rate: float = 2.5e-4
     gae_lambda: float = 0.95
@@ -48,6 +51,7 @@ class PPOConfig(A2CConfig):
     norm_adv: bool = True
 
     def __post_init__(self):
+        super().__post_init__()
         batch_size = self.num_envs * self.num_steps
         if batch_size % self.minibatch_size != 0:
             raise ValueError(
