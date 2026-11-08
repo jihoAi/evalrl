@@ -77,19 +77,7 @@ class A2CAgent(Agent):
 
   def update(self)->dict[str,float]:
     if self.ready_to_update():
-      with torch.no_grad():
-        next_obs_tensor = self.rollout_buffer.next_obs_tensor()
-        next_values = self.networks['critic'](next_obs_tensor).cpu().numpy().squeeze(-1)
-      returns,advantages = compute_advantages(
-        self.rollout_buffer.rewards,
-        self.rollout_buffer.values,
-        next_values,
-        self.rollout_buffer.terms,
-        self.rollout_buffer.truncs,
-        self.config.gamma,
-        self.config.gae_lambda
-      )
-      self.rollout_buffer.set_advantages(advantages,returns)
+      self._set_returns_and_adv()
 
       batches = self.rollout_buffer.make_batch()
       logits = self.networks['actor'](batches['obs'])
@@ -98,11 +86,11 @@ class A2CAgent(Agent):
       entropies = dist.entropy().mean()
       values = self.networks['critic'](batches['obs']).squeeze(-1)
   
-      policy_loss = (log_probs*batches['advantages']).mean()
+      policy_loss = -(log_probs*batches['advantages']).mean()
   
       value_loss = 0.5*((batches['returns']-values)**2).mean()
   
-      loss = -policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropies
+      loss = policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropies
   
       self.optimizers['optim'].zero_grad()
       loss.backward()
@@ -115,5 +103,17 @@ class A2CAgent(Agent):
     else:
       return None
       
-  
-      
+  def _set_returns_and_adv(self):
+    with torch.no_grad():
+        next_obs_tensor = self.rollout_buffer.next_obs_tensor()
+        next_values = self.networks['critic'](next_obs_tensor).cpu().numpy().squeeze(-1)
+    returns,advantages = compute_advantages(
+      self.rollout_buffer.rewards,
+      self.rollout_buffer.values,
+      next_values,
+      self.rollout_buffer.terms,
+      self.rollout_buffer.truncs,
+      self.config.gamma,
+      self.config.gae_lambda
+    )
+    self.rollout_buffer.set_advantages(advantages,returns)
