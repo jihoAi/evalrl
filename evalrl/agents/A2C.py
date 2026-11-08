@@ -1,4 +1,4 @@
-from evalrl.agents.Agent import Agent
+from evalrl.agents.base import Agent
 
 from evalrl.utils.build_mlp import build_mlp 
 from evalrl.utils.rollout_buffer import RolloutBuffer
