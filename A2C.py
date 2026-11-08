@@ -100,7 +100,7 @@ class A2CAgent(Agent):
   
       policy_loss = (log_probs*batches['advantages']).mean()
   
-      value_loss = ((batches['returns']-values)**2).mean()
+      value_loss = 0.5*((batches['returns']-values)**2).mean()
   
       loss = -policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropies
   
@@ -111,7 +111,7 @@ class A2CAgent(Agent):
   
       self.rollout_buffer.clear()
   
-      return {'policy_loss':policy_loss.item(),'value_loss':value_loss.item(),'entropy':entropies.item(),'clip_grad_norm':grad_norm}
+      return {'policy_loss':policy_loss.item(),'value_loss':value_loss.item(),'entropy':entropies.item(),'clip_grad_norm':grad_norm.item()}
     else:
       return None
       
