@@ -51,5 +51,8 @@ class ReplayBuffer:
             "terms": torch.as_tensor(self.terms_buffer[idx], device=self.device),
         }
 
+    def is_full(self)->bool:
+        return self.size == self.capacity
+    
     def __len__(self):
         return self.size
