@@ -24,7 +24,36 @@ class CommonConfig:
 
     def __post_init__(self):
         self.hidden = tuple(self.hidden)
-            
+
+@dataclass
+class DQNConfig(CommonConfig):
+    max_grad_norm: float = 10.0     
+
+    # DQN 전용 (모든 step 값은 env step 기준)
+    buffer_size: int = 10_000
+    batch_size: int = 64
+    learning_rate: float = 5e-4
+    eps_start: float = 1.0
+    eps_end: float = 0.03
+    eps_decay_steps: int = 10_000
+    learning_starts: int = 10_000
+    train_freq: int = 10
+    target_update_freq: int = 1_000
+
+    def __post_init__(self):
+        super().__post_init__()
+        if self.batch_size > self.buffer_size:
+            raise ValueError(
+                f"batch_size ({self.batch_size})가 buffer_size ({self.buffer_size})보다 큼"
+            )
+        if self.learning_starts < self.batch_size:
+            raise ValueError(
+                f"learning_starts ({self.learning_starts})가 batch_size ({self.batch_size})보다 작음"
+            )
+        if not 0.0 <= self.eps_end <= self.eps_start <= 1.0:
+            raise ValueError(
+                f"0 <= eps_end ({self.eps_end}) <= eps_start ({self.eps_start}) <= 1 이어야 함"
+            )
 
 
 @dataclass
