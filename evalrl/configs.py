@@ -9,7 +9,6 @@ class CommonConfig:
     num_envs: int = 8
     hidden: tuple[int, ...] = (64, 64)
     gamma: float = 0.99
-    max_grad_norm: float = 0.5
     seed: int = 0
 
     # ── 평가 (Evaluator) ──
@@ -27,9 +26,8 @@ class CommonConfig:
 
 @dataclass
 class DQNConfig(CommonConfig):
-    max_grad_norm: float = 10.0     
-
     # DQN 전용 (모든 step 값은 env step 기준)
+    max_grad_norm: float = 10.0     
     buffer_size: int = 10_000
     batch_size: int = 64
     learning_rate: float = 5e-4
@@ -63,7 +61,7 @@ class A2CConfig(CommonConfig):
     gae_lambda: float = 1.0
     vf_coef: float = 0.5
     ent_coef: float = 0.0
-
+    max_grad_norm: float = 0.5
 
 @dataclass
 class PPOConfig(A2CConfig):
