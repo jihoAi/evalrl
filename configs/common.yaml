@@ -11,7 +11,6 @@ hidden: [64, 64]
 
 # 공통 학습 설정
 gamma: 0.99
-max_grad_norm: 0.5
 
 # 평가 (Evaluator)
 eval_episodes: 10
