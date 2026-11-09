@@ -2,7 +2,7 @@ import yaml
 import os
 from dataclasses import asdict
 
-from evalrl.configs import A2CConfig, PPOConfig
+from evalrl.configs import A2CConfig, PPOConfig, DQNConfig
 
 def load_yaml(path):
   with open(path,encoding="utf-8") as f:
@@ -24,9 +24,10 @@ def deep_merge(base,override):
 def load_config(algo, overrides=None, config_dir="configs"):
   CONFIG_REGISTRY = {
     "ppo" : PPOConfig,
-    "a2c" : A2CConfig
+    "a2c" : A2CConfig,
+    "dqn" : DQNConfig
   }
-
+  
   if algo not in CONFIG_REGISTRY:
     raise ValueError(f"알 수 없는 algo: {algo!r}. 사용 가능: {list(CONFIG_REGISTRY)}")
 
