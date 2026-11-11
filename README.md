@@ -17,8 +17,8 @@
 | Evaluator (vectorized) | ✅ 완료 (테스트 통과) |
 | Logger (CSV) | ✅ 완료 (테스트 통과) |
 | Trainer | ✅ 완료 (PPO eval 500 도달) |
-| `DQNAgent` | 🚧 다음 작업 |
-| Runner (algo × seed) · 분석 스크립트 | ⏳ 예정 |
+| `DQNAgent` | ✅ 완료 (테스트 통과) |
+| Runner (algo × seed) · 분석 스크립트 | 🚧 다음 작업 |
 
 ## 공정성 기준
 
