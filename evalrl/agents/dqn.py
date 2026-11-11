@@ -82,7 +82,10 @@ class DQNAgent(Agent):
       return update_res
     else:
       return None
-    
+
+  def get_state(self)->dict[str,float]:
+    return {"epsilon":self.epsilon}
+  
   def _get_n_owed(self):
       self.n_owed = floor((self.global_timestep - self.config.learning_starts)/self.config.train_freq) - self.n_done
 
