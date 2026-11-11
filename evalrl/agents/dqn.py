@@ -40,7 +40,7 @@ class DQNAgent(Agent):
     self.target_syncs = 0
 
     self.epsilon = config.eps_start
-    self.rng = np.random.default_rng()
+    self.rng = np.random.default_rng(seed=config.seed)
   
   def act(self,obs:np.ndarray,deterministic:bool)->np.ndarray:
     self.epsilon = self._epsilon()
