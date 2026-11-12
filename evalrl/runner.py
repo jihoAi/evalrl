@@ -79,7 +79,7 @@ def run_one(algo, seed, overrides=None, config_di,runs_root="runs",device="cpu")
     if eval_env is not None:
       eval_env.close()
     
-def run_all(algos, seeds, overrides=None,config_dir="configs",runs_root="runs",device="cpu"):
+def run_all(algos, seeds, overrides=None,config_dir,runs_root="runs",device="cpu"):
   result = {}
   num_iter = len(algos)*len(seeds)
   iter = 1
