@@ -1,0 +1,23 @@
+# LunarLander 공통 설정 (공정성 항목)
+# 비교 실험에서는 이 값들을 알고리즘별 YAML에서 덮어쓰지 않는다.
+# seed, run_dir은 Runner가 실행마다 채운다.
+# gamma는 최적화 목표 자체를 정하므로 알고리즘별로 다르게 두지 않는다 (rl-zoo는 A2C 0.995, PPO 0.999).
+
+env_id: LunarLander-v3
+total_timestep: 1000000
+num_envs: 8
+
+# 네트워크
+hidden: [64, 64]
+
+# 공통 학습 설정
+gamma: 0.99
+
+# 평가 (Evaluator)
+eval_episodes: 10
+eval_seed: 10000
+eval_interval: 20000
+
+# 기록 · 저장 (Logger, Trainer)
+log_interval: 2000
+save_interval: 100000

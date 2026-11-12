@@ -1,0 +1,21 @@
+# DQN LunarLander 설정 (SB3 저자 학습 스크립트 참고: araffin/dqn-LunarLander-v2)
+# 모든 step 값은 env step 기준 (num_envs개 env가 한 번 step하면 num_envs step)
+# 원본과 다른 점:
+#   - learning_starts 0 → 1000 (DQNConfig 검증: learning_starts >= batch_size)
+#   - train_freq 1 + gradient_steps 4 (8 env) → env step 2개당 업데이트 1번
+#   - eps_decay_steps = exploration_fraction 0.08 × 1M (예산 500k 대신 1M)
+#   - 네트워크는 [256, 256] 대신 공통 [64, 64]
+
+max_grad_norm: 10.0 # DQN 표준값 (SB3)
+
+buffer_size: 100000
+batch_size: 128
+learning_rate: 0.0007
+
+eps_start: 1.0
+eps_end: 0.05
+eps_decay_steps: 80000
+
+learning_starts: 1000
+train_freq: 2
+target_update_freq: 250
