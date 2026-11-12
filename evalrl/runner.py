@@ -28,7 +28,7 @@ def set_seed(seed):
   torch.backends.cudnn.deterministic = True
   torch.backends.cudnn.benchmark = False
 
-def run_one(algo, seed, overrides=None, config_dir="configs",runs_root="runs",device="cpu"):
+def run_one(algo, seed, overrides=None, config_di,runs_root="runs",device="cpu"):
   train_env=None
   eval_env=None
   try:
