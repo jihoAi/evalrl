@@ -21,7 +21,7 @@ def deep_merge(base,override):
       result[key]=value
   return result
 
-def load_config(algo, overrides=None, config_dir):
+def load_config(algo, overrides=None, config_dir="configs/cartpole"):
   CONFIG_REGISTRY = {
     "ppo" : PPOConfig,
     "a2c" : A2CConfig,
