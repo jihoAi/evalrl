@@ -109,7 +109,7 @@ class DQNAgent(Agent):
       next_q_max = self.networks['target_q'](batch['next_obs']).max(dim=1,keepdim=True).values
       target_q_values = batch['rewards'] + self.config.gamma * next_q_max * (1-batch['terms'])
     q_values = self.networks['q_net'](batch['obs']).gather(1,batch['actions'])
-    loss = F.smooth_l1_loss(q_values,target_q_values)
+    loss = F.mse_loss(q_values,target_q_values)
     self.optimizers['optim'].zero_grad()
     loss.backward()
     clip_grad_norm = torch.nn.utils.clip_grad_norm_(self.networks['q_net'].parameters(),self.config.max_grad_norm)
