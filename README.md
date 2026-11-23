@@ -4,22 +4,6 @@
 
 직접 구현한 DQN · A2C · PPO를 하나의 공통 프레임워크에서 학습·평가합니다. 알고리즘마다 학습 방식(off-policy / on-policy, 버퍼, 업데이트 주기)이 달라 조건을 완전히 같게 만들 수는 없으므로, evalrl은 알고리즘 간 우열을 판정하는 벤치마크가 아닙니다. 대신 **무엇을 어떻게 측정하고 기록할지를 통일**해서, 서로 다른 알고리즘의 결과를 같은 틀 위에 놓고 볼 수 있게 하는 것이 목표입니다.
 
-## 현재 상태
-
-| 구성 요소 | 상태 |
-|---|---|
-| 베이스 `Agent` (save / load / on_step) | ✅ 완료 |
-| `A2CAgent` | ✅ 완료 (CartPole 학습 확인) |
-| `PPOAgent` (`A2CAgent` 상속) | ✅ 완료 (CartPole 500 도달) |
-| Rollout buffer, GAE | ✅ 완료 |
-| Config (dataclass) · Config 로더 (YAML) | ✅ 완료 |
-| env factory (SAME_STEP vector env) | ✅ 완료 |
-| Evaluator (vectorized) | ✅ 완료 (테스트 통과) |
-| Logger (CSV) | ✅ 완료 (테스트 통과) |
-| Trainer | ✅ 완료 (PPO eval 500 도달) |
-| `DQNAgent` | ✅ 완료 (테스트 통과) |
-| Runner (algo × seed) · 분석 스크립트 | 🚧 다음 작업 |
-
 ## 비교 기준
 
 ### 통일하는 것 (측정 · 기록 방식)
@@ -29,7 +13,7 @@
 | x축 | 모든 지표를 환경 step 수 기준으로 기록 |
 | 학습 예산 | 같은 환경 step 수 |
 | 시드 | 같은 seed 집합, 알고리즘당 5~10개 |
-| 환경 | 같은 `env_id` · `num_envs`, SAME_STEP autoreset (`configs/common.yaml`) |
+| 환경 | 같은 `env_id` · `num_envs`, SAME_STEP autoreset (`configs/{env}/common.yaml`) |
 | 종료 처리 | truncation에서는 bootstrap, termination에서는 안 함 (세 알고리즘 동일) |
 | 평가 프로토콜 | 별도 eval env, 고정 eval seed, deterministic policy, 같은 평가 주기 · 에피소드 수 |
 | 네트워크 생성 | 공통 팩토리 `build_mlp`, 같은 hidden 구조 |
@@ -51,24 +35,31 @@
 evalrl/                     (저장소 루트)
 ├── pyproject.toml
 ├── README.md
-├── configs/                실험 설정 YAML
-│   ├── common.yaml         공통 비교 기준 (예산, 환경, 네트워크, 평가)
-│   ├── a2c.yaml
-│   └── ppo.yaml
+├── configs/                실험 설정 YAML (환경별 폴더)
+│   ├── cartpole/
+│   │   ├── common.yaml     공통 비교 기준 (예산, 환경, 네트워크, 평가)
+│   │   ├── dqn.yaml
+│   │   ├── a2c.yaml
+│   │   └── ppo.yaml
+│   └── lunarlander/        (같은 구성)
 ├── tests/
 │   └── test_logger_evaluator.py
 └── evalrl/                 (패키지)
     ├── __init__.py
-    ├── configs.py          CommonConfig, A2CConfig, PPOConfig (dataclass)
+    ├── configs.py          CommonConfig, DQNConfig, A2CConfig, PPOConfig (dataclass)
     ├── config_loader.py    load_config, save_config
+    ├── runner.py           run_one, run_all (algo × seed 실행)
+    ├── analyze.py          analyze (IQM · 95% CI 요약, 학습 곡선)
     ├── agents/
     │   ├── __init__.py
     │   ├── base.py         Agent (추상 클래스)
+    │   ├── dqn.py          DQNAgent
     │   ├── a2c.py          A2CAgent
-    │   └── ppo.py          PPOAgent
+    │   └── ppo.py          PPOAgent (A2CAgent 상속)
     ├── utils/
     │   ├── __init__.py
     │   ├── build_mlp.py
+    │   ├── replay_buffer.py
     │   ├── rollout_buffer.py
     │   └── compute_advantages.py
     └── core/
@@ -87,6 +78,13 @@ pip install -e evalrl
 ```
 
 `-e`(editable) 설치라 코드를 고치면 재설치 없이 반영됩니다.
+
+추가로 필요한 패키지:
+
+```bash
+pip install matplotlib            # analyze (학습 곡선 그래프)
+pip install "gymnasium[box2d]"     # LunarLander
+```
 
 ### Google Colab
 
@@ -110,6 +108,51 @@ else:
 
 ## 빠른 시작
 
+### 여러 알고리즘 × seed 실행 (Runner)
+
+```python
+from evalrl.runner import run_all
+
+results = run_all(
+    algos=["dqn", "a2c", "ppo"],
+    seeds=[0, 1, 2, 3, 4],
+    config_dir="/content/repos/evalrl/configs/cartpole",   # 로컬이면 "configs/cartpole"
+    runs_root="runs/cartpole",
+)
+```
+
+- 실행마다 `runs_root/{algo}_seed{n}/` 폴더가 생깁니다.
+- `final.pt`가 있는 run은 건너뛰고, 중간에 끊긴 run은 지우고 다시 학습합니다. Colab 세션이 끊겨도 같은 셀을 다시 실행하면 이어서 진행됩니다.
+- 한 run만 돌릴 때는 `run_one(algo, seed, ...)`을 씁니다.
+
+### 결과 비교 (analyze)
+
+```python
+from evalrl.analyze import analyze
+
+summary = analyze("runs/cartpole")
+```
+
+끝난 run(`final.pt`가 있는 폴더)의 `eval.csv`를 모아 seed 축으로 **IQM과 95% bootstrap CI**를 계산합니다. 결과는 `runs_root/analysis/`에 저장됩니다.
+
+| 파일 | 내용 |
+|---|---|
+| `learning_curve.png` | 학습 곡선 (x축: 환경 step, y축: IQM eval return ± CI) |
+| `summary.md` | 요약 지표 표 |
+| `chart.json` | 블로그 차트용 데이터 |
+
+요약 지표:
+
+| 지표 | 의미 |
+|---|---|
+| Normalized AUC | 학습 곡선 아래 면적 ÷ step 구간 = 학습 중 평균 성능 (표본 효율, sample efficiency) |
+| Final return | 마지막 3개 평가의 평균 (최종 성능) |
+| Steps to threshold | 해결 기준(CartPole 475, LunarLander 200)에 처음 도달한 step. 도달 못 한 seed는 마지막 step으로 처리 |
+
+> 알고리즘마다 seed별 평가 시점이 같아야 묶을 수 있으므로, `total_timestep` · `eval_interval`은 `common.yaml`에서만 바꿉니다.
+
+### 단일 실행 (구성 요소 직접 조립)
+
 ```python
 import torch
 
@@ -123,7 +166,7 @@ from evalrl.core.trainer import Trainer
 config = load_config(
     "ppo",
     overrides={"seed": 0, "run_dir": "runs/ppo_seed0"},
-    config_dir="/content/repos/evalrl/configs",   # 로컬이면 "configs"
+    config_dir="/content/repos/evalrl/configs/cartpole",   # 로컬이면 "configs/cartpole"
 )
 
 envs = make_train_envs(config)
@@ -150,11 +193,12 @@ print(result)   # {'eval_return_mean': ..., 'eval_return_std': ..., 'eval_length
 설정은 아래 순서로 덮어써집니다. 뒤로 갈수록 우선순위가 높습니다.
 
 ```
-dataclass 기본값 (configs.py) < configs/common.yaml < configs/{algo}.yaml < overrides
+dataclass 기본값 (configs.py) < configs/{env}/common.yaml < configs/{env}/{algo}.yaml < overrides
 ```
 
 - `common.yaml`: 모든 알고리즘에 공통으로 적용하는 비교 기준 (환경, 예산, `num_envs`, 네트워크, 평가)
 - `{algo}.yaml`: 알고리즘 고유 하이퍼파라미터만
+- 환경은 `config_dir`로 고릅니다 (`configs/cartpole`, `configs/lunarlander`). 기본값은 `configs/cartpole`.
 - `overrides`: 실행마다 달라지는 값 (`seed`, `run_dir`) 또는 빠른 테스트용 값 (`total_timestep`)
 
 YAML에 없는 key를 넣으면 dataclass 생성 시 `TypeError`가 나서 오타가 바로 드러납니다.
