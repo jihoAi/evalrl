@@ -1,8 +1,8 @@
 # evalrl
 
-여러 강화학습 에이전트를 **같은 조건에서** 구현·실행·비교하기 위한 PyTorch 라이브러리입니다.
+여러 강화학습 에이전트의 학습 과정과 결과를 **일관된 지표와 형식으로** 기록·비교하기 위한 PyTorch 라이브러리입니다.
 
-직접 구현한 DQN · A2C · PPO를 하나의 공통 프레임워크에서 학습·평가해 공정하게 비교하는 것이 목표입니다. 원칙은 **알고리즘만 바꾸고 나머지는 모두 고정**하는 것입니다.
+직접 구현한 DQN · A2C · PPO를 하나의 공통 프레임워크에서 학습·평가합니다. 알고리즘마다 학습 방식(off-policy / on-policy, 버퍼, 업데이트 주기)이 달라 조건을 완전히 같게 만들 수는 없으므로, evalrl은 알고리즘 간 우열을 판정하는 벤치마크가 아닙니다. 대신 **무엇을 어떻게 측정하고 기록할지를 통일**해서, 서로 다른 알고리즘의 결과를 같은 틀 위에 놓고 볼 수 있게 하는 것이 목표입니다.
 
 ## 현재 상태
 
@@ -20,16 +20,28 @@
 | `DQNAgent` | ✅ 완료 (테스트 통과) |
 | Runner (algo × seed) · 분석 스크립트 | 🚧 다음 작업 |
 
-## 공정성 기준
+## 비교 기준
+
+### 통일하는 것 (측정 · 기록 방식)
 
 | 항목 | 통일 방법 |
 |---|---|
-| 학습 예산 | 환경 step 수 기준 |
+| x축 | 모든 지표를 환경 step 수 기준으로 기록 |
+| 학습 예산 | 같은 환경 step 수 |
 | 시드 | 같은 seed 집합, 알고리즘당 5~10개 |
-| 네트워크 | 같은 구조, 공통 팩토리 `build_mlp`로 생성 |
 | 환경 | 같은 `env_id` · `num_envs`, SAME_STEP autoreset (`configs/common.yaml`) |
 | 종료 처리 | truncation에서는 bootstrap, termination에서는 안 함 (세 알고리즘 동일) |
-| 평가 | 별도 eval env, 고정 eval seed, deterministic policy |
+| 평가 프로토콜 | 별도 eval env, 고정 eval seed, deterministic policy, 같은 평가 주기 · 에피소드 수 |
+| 네트워크 생성 | 공통 팩토리 `build_mlp`, 같은 hidden 구조 |
+| 출력 형식 | 같은 파일 구성(`config.yaml`, `train.csv`, `eval.csv`)과 같은 지표 이름 |
+
+### 통일하지 않는 것 (알고리즘 고유)
+
+- 알고리즘별 하이퍼파라미터 (learning rate, rollout 길이, replay buffer 크기, target update 주기 등)
+- 데이터 수집 · 업데이트 방식 (off-policy replay vs on-policy rollout)
+- 네트워크 출력 구조 (Q-network vs actor-critic)
+
+이 차이는 숨기지 않고 각 실행의 `config.yaml`에 그대로 기록합니다. 따라서 결과는 "어느 알고리즘이 더 좋다"는 판정이 아니라, **이 설정에서 각 알고리즘이 이렇게 학습했다**는 일관된 기록으로 읽어야 합니다.
 
 환경은 DQN이 이산 행동(discrete action)만 지원하므로 CartPole · LunarLander를 사용합니다.
 
@@ -40,7 +52,7 @@ evalrl/                     (저장소 루트)
 ├── pyproject.toml
 ├── README.md
 ├── configs/                실험 설정 YAML
-│   ├── common.yaml         공정성 항목 (예산, 환경, 네트워크, 평가)
+│   ├── common.yaml         공통 비교 기준 (예산, 환경, 네트워크, 평가)
 │   ├── a2c.yaml
 │   └── ppo.yaml
 ├── tests/
@@ -141,7 +153,7 @@ print(result)   # {'eval_return_mean': ..., 'eval_return_std': ..., 'eval_length
 dataclass 기본값 (configs.py) < configs/common.yaml < configs/{algo}.yaml < overrides
 ```
 
-- `common.yaml`: 모든 알고리즘이 같아야 하는 공정성 항목 (환경, 예산, `num_envs`, 네트워크, 평가)
+- `common.yaml`: 모든 알고리즘에 공통으로 적용하는 비교 기준 (환경, 예산, `num_envs`, 네트워크, 평가)
 - `{algo}.yaml`: 알고리즘 고유 하이퍼파라미터만
 - `overrides`: 실행마다 달라지는 값 (`seed`, `run_dir`) 또는 빠른 테스트용 값 (`total_timestep`)
 
