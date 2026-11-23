@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class CommonConfig:
-    # ── 공정성 항목: 비교 실험에서는 모든 알고리즘이 같은 값을 써야 함 ──
+    #공통비교기준
     env_id: str = "CartPole-v1"
     total_timestep: int = 500_000
     num_envs: int = 8
