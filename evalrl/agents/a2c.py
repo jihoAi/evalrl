@@ -26,13 +26,17 @@ class A2CAgent(Agent):
     self.networks['actor'] = build_mlp(
       input_dim = obs_space.shape[0],
       output_dim = action_space.n,
-      hidden = config.hidden
+      hidden = config.hidden,
+      ortho_init = config.ortho_init,
+      out_gain = 0.01
     ).to(device)
 
     self.networks['critic'] = build_mlp(
       input_dim = obs_space.shape[0],
       output_dim = 1,
-      hidden = config.hidden
+      hidden = config.hidden,
+      ortho_init = config.ortho_init,
+      out_gain = 1.0
     ).to(device)
 
     self.optimizers['actor'] = optim.Adam(self.networks['actor'].parameters(), lr=config.actor_lr)
