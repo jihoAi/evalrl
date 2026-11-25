@@ -35,8 +35,8 @@ class A2CAgent(Agent):
       hidden = config.hidden
     ).to(device)
 
-    self.optimizers['actor'] = optim.Adam(self.networks['actor'].parameters(),config.learning_rate)
-    self.optimizers['critic'] = optim.Adam(self.networks['critic'].parameters(),config.learning_rate)
+    self.optimizers['actor'] = optim.Adam(self.networks['actor'].parameters(), lr=config.actor_lr)
+    self.optimizers['critic'] = optim.Adam(self.networks['critic'].parameters(), lr=config.critic_lr)
     
     self._last_log_prob = None
     self._last_value = None
@@ -69,9 +69,20 @@ class A2CAgent(Agent):
 
   def ready_to_update(self)->bool:
     return self.rollout_buffer.is_full()
+    
+  def _update_lrs(self):
+    self._apply_lr_schedule(self.optimizers['actor'], self.config.actor_lr)
+    self._apply_lr_schedule(self.optimizers['critic'], self.config.critic_lr)
+
+  def get_state(self) -> dict[str, float]:
+    return {
+      'actor_lr': self.optimizers['actor'].param_groups[0]['lr'],
+      'critic_lr': self.optimizers['critic'].param_groups[0]['lr'],
+    }
 
   def update(self)->dict[str,float]:
     if self.ready_to_update():
+      self._update_lrs()
       self._set_returns_and_adv()
 
       batches = self.rollout_buffer.make_batch()
@@ -80,13 +91,11 @@ class A2CAgent(Agent):
       log_probs = dist.log_prob(batches['actions'])
       entropies = dist.entropy().mean()
       values = self.networks['critic'](batches['obs']).squeeze(-1)
-  
+
       policy_loss = -(log_probs*batches['advantages']).mean()
-  
       value_loss = 0.5*((batches['returns']-values)**2).mean()
-  
       actor_loss = policy_loss - self.config.ent_coef*entropies
-    
+
       self.optimizers['actor'].zero_grad()
       actor_loss.backward()
       actor_grad_norm = torch.nn.utils.clip_grad_norm_(self.networks['actor'].parameters(),max_norm=self.config.max_grad_norm)
@@ -96,10 +105,11 @@ class A2CAgent(Agent):
       value_loss.backward()
       critic_grad_norm = torch.nn.utils.clip_grad_norm_(self.networks['critic'].parameters(),max_norm=self.config.max_grad_norm)
       self.optimizers['critic'].step()
-      
+
       self.rollout_buffer.clear()
-      
-      return {'policy_loss':policy_loss.item(),'value_loss':value_loss.item(),'entropy':entropies.item(),'actor_grad_norm':actor_grad_norm.item(),'critic_grad_norm':critic_grad_norm}
+
+      return {'policy_loss':policy_loss.item(),'value_loss':value_loss.item(),'entropy':entropies.item(),
+              'actor_grad_norm':actor_grad_norm.item(),'critic_grad_norm':critic_grad_norm.item()}
     else:
       return None
       
