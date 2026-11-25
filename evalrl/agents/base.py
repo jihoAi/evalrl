@@ -55,3 +55,13 @@ class Agent(abc.ABC):
 
   def on_episode_end(self,info):
     pass
+
+  def _apply_lr_schedule(self, optimizer, base_lr: float) -> float:
+    if self.config.lr_schedule == "linear":
+      frac = max(1.0 - self.global_timestep / self.config.total_timestep, 0.0)
+      lr = base_lr * frac
+    else:
+      lr = base_lr
+    for g in optimizer.param_groups:
+      g['lr'] = lr
+    return lr
