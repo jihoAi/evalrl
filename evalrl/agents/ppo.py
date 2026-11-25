@@ -9,6 +9,7 @@ class PPOAgent(A2CAgent):
 
   def update(self)->dict[str,float]:
     if self.ready_to_update():
+      self._update_lrs()
       self._set_returns_and_adv()
 
       batches = self.rollout_buffer.make_batch()
