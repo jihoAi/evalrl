@@ -34,14 +34,9 @@ class A2CAgent(Agent):
       output_dim = 1,
       hidden = config.hidden
     ).to(device)
-    
-    self.optimizers['optim'] = optim.Adam([
-        {'params':self.networks['actor'].parameters()},
-        {'params':self.networks['critic'].parameters()}
-      ],lr=config.learning_rate
-    )
-    
-    self.clip_params = [p for g in self.optimizers['optim'].param_groups for p in g['params']]
+
+    self.optimizers['actor'] = optim.Adam(self.networks['actor'].parameters(),config.learning_rate)
+    self.optimizers['critic'] = optim.Adam(self.networks['critic'].parameters(),config.learning_rate)
     
     self._last_log_prob = None
     self._last_value = None
@@ -90,16 +85,21 @@ class A2CAgent(Agent):
   
       value_loss = 0.5*((batches['returns']-values)**2).mean()
   
-      loss = policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropies
-  
-      self.optimizers['optim'].zero_grad()
-      loss.backward()
-      grad_norm = torch.nn.utils.clip_grad_norm_(self.clip_params,max_norm=self.config.max_grad_norm)
-      self.optimizers['optim'].step()
-  
+      actor_loss = policy_loss - self.config.ent_coef*entropies
+    
+      self.optimizers['actor'].zero_grad()
+      actor_loss.backward()
+      actor_grad_norm = torch.nn.utils.clip_grad_norm_(self.networks['actor'].parameters(),max_norm=self.config.max_grad_norm)
+      self.optimizers['actor'].step()
+
+      self.optimizers['critic'].zero_grad()
+      value_loss.backward()
+      critic_grad_norm = torch.nn.utils.clip_grad_norm_(self.networks['critic'].parameters(),max_norm=self.config.max_grad_norm)
+      self.optimizers['critic'].step()
+      
       self.rollout_buffer.clear()
-  
-      return {'policy_loss':policy_loss.item(),'value_loss':value_loss.item(),'entropy':entropies.item(),'clip_grad_norm':grad_norm.item()}
+      
+      return {'policy_loss':policy_loss.item(),'value_loss':value_loss.item(),'entropy':entropies.item(),'actor_grad_norm':actor_grad_norm.item(),'critic_grad_norm':critic_grad_norm}
     else:
       return None
       
