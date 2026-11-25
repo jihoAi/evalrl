@@ -69,6 +69,7 @@ class A2CConfig(CommonConfig):
     gae_lambda: float = 1.0
     ent_coef: float = 0.0
     max_grad_norm: float = 0.5
+    ortho_init: bool = True
 
 @dataclass
 class PPOConfig(A2CConfig):
