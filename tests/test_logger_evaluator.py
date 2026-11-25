@@ -118,18 +118,20 @@ def test_evaluator_deterministic(agent=None):
     assert r1 == r2, f"같은 agent · 같은 seed인데 결과가 다름\n{r1}\n{r2}"
     print("✓ evaluator: 두 번 호출 결과 동일 (seed · deterministic 정상)")
 
+def _all_params(agent):
+    return [p for net in agent.networks.values() for p in net.parameters()]
 
 def test_evaluator_no_side_effects(agent=None):
     agent = agent or _new_agent()
     ptr_before = agent.rollout_buffer.ptr
     step_before = agent.global_timestep
-    params_before = [p.detach().clone() for p in agent.clip_params]
+    params_before = [p.detach().clone() for p in _all_params(agent)]
 
     Evaluator(make_eval_env(EVAL_CFG), EVAL_CFG).evaluate(agent)
 
     assert agent.rollout_buffer.ptr == ptr_before, "평가가 버퍼에 데이터를 넣음 (observe 호출?)"
     assert agent.global_timestep == step_before, "평가가 global_timestep을 바꿈 (on_step 호출?)"
-    assert all(torch.equal(a, b) for a, b in zip(params_before, agent.clip_params)), "평가가 가중치를 바꿈"
+    assert all(torch.equal(a, b) for a, b in zip(params_before, _all_params(agent))), "평가가 가중치를 바꿈"
     print("✓ evaluator: 버퍼 · step · 가중치 변화 없음")
 
 
