@@ -11,6 +11,9 @@ class CommonConfig:
     gamma: float = 0.99
     seed: int = 0
 
+    # ── 학습률 스케줄 (env step 기준) ──
+    lr_schedule: str = "constant"    # "constant" | "linear"
+
     # ── 평가 (Evaluator) ──
     eval_episodes: int = 10
     eval_seed: int = 10_000          # 학습 seed와 겹치지 않게 큰 값
@@ -23,6 +26,10 @@ class CommonConfig:
 
     def __post_init__(self):
         self.hidden = tuple(self.hidden)
+        if self.lr_schedule not in ("constant", "linear"):
+            raise ValueError(
+                f"lr_schedule ({self.lr_schedule!r})는 'constant' 또는 'linear'여야 함"
+            )
 
 @dataclass
 class DQNConfig(CommonConfig):
@@ -57,9 +64,9 @@ class DQNConfig(CommonConfig):
 @dataclass
 class A2CConfig(CommonConfig):
     num_steps: int = 5
-    learning_rate: float = 7e-4
+    actor_lr: float = 7e-4
+    critic_lr: float = 7e-4
     gae_lambda: float = 1.0
-    vf_coef: float = 0.5
     ent_coef: float = 0.0
     max_grad_norm: float = 0.5
 
@@ -67,7 +74,8 @@ class A2CConfig(CommonConfig):
 class PPOConfig(A2CConfig):
     # A2C와 같은 필드는 기본값만 덮어씀
     num_steps: int = 128
-    learning_rate: float = 2.5e-4
+    actor_lr: float = 2.5e-4
+    critic_lr: float = 2.5e-4
     gae_lambda: float = 0.95
     ent_coef: float = 0.01
 
