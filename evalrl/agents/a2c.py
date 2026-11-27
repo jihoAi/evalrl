@@ -5,15 +5,18 @@ from evalrl.utils.rollout_buffer import RolloutBuffer
 from evalrl.utils.compute_advantages import compute_advantages
 
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
 
 import numpy as np
 
+ACTIVATION_MAP = {"relu":nn.ReLU,"tanh":nn.Tanh}
+
 class A2CAgent(Agent):
   def __init__(self,obs_space,action_space,config,device):
     super().__init__(obs_space,action_space,config,device)
-
+    activation = ACTIVATION_MAP[config.activation]
     self.rollout_buffer = RolloutBuffer(
       num_envs=config.num_envs,
       num_steps=config.num_steps,
@@ -27,6 +30,7 @@ class A2CAgent(Agent):
       input_dim = obs_space.shape[0],
       output_dim = action_space.n,
       hidden = config.hidden,
+      activation = activation,
       ortho_init = config.ortho_init,
       out_gain = 0.01
     ).to(device)
@@ -35,6 +39,7 @@ class A2CAgent(Agent):
       input_dim = obs_space.shape[0],
       output_dim = 1,
       hidden = config.hidden,
+      activation = activation,
       ortho_init = config.ortho_init,
       out_gain = 1.0
     ).to(device)
