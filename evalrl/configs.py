@@ -61,6 +61,8 @@ class DQNConfig(CommonConfig):
             )
 
 
+ACTIVATIONS = ("relu", "tanh")
+
 @dataclass
 class A2CConfig(CommonConfig):
     num_steps: int = 5
@@ -70,6 +72,14 @@ class A2CConfig(CommonConfig):
     ent_coef: float = 0.0
     max_grad_norm: float = 0.5
     ortho_init: bool = True
+    activation: str = "tanh"        # "relu" | "tanh" (SB3·CleanRL 기본값은 tanh)
+
+    def __post_init__(self):
+        super().__post_init__()
+        if self.activation not in ACTIVATIONS:
+            raise ValueError(
+                f"activation ({self.activation!r})은 {ACTIVATIONS} 중 하나여야 함"
+            )
 
 @dataclass
 class PPOConfig(A2CConfig):
