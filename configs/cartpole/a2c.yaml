@@ -5,3 +5,4 @@ lr_schedule: linear
 gae_lambda: 1.0
 ent_coef: 0.0
 max_grad_norm: 0.5
+activation: tanh
