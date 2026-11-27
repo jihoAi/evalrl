@@ -44,14 +44,21 @@ class PPOAgent(A2CAgent):
 
           entropy = new_dist.entropy().mean()
 
-          loss = policy_loss + self.config.vf_coef*value_loss - self.config.ent_coef*entropy
+          actor_loss = policy_loss - self.config.ent_coef*entropy
+          
+          self.optimizers['actor'].zero_grad()
+          actor_loss.backward()
+          actor_grad_norm = torch.nn.utils.clip_grad_norm_(self.networks['actor'].parameters(),max_norm=self.config.max_grad_norm)
+          self.optimizers['actor'].step()
 
-          self.optimizers['optim'].zero_grad()
-          loss.backward()
-          grad_norm = torch.nn.utils.clip_grad_norm_(self.clip_params,max_norm=self.config.max_grad_norm)
-          self.optimizers['optim'].step()
+          self.optimizers['critic'].zero_grad()
+          value_loss.backward()
+          critic_grad_norm = torch.nn.utils.clip_grad_norm_(self.networks['critic'].parameters(),max_norm=self.config.max_grad_norm)
+          self.optimizers['critic'].step()
       
       self.rollout_buffer.clear()
-      return {'policy_loss':policy_loss.item(),'value_loss':value_loss.item(),'entropy':entropy.item(),'clip_grad_norm':grad_norm.item(),'approx_kl':approx_kl.item(),'clipfracs':sum(clipfracs)/len(clipfracs)}
+      return {'policy_loss':policy_loss.item(),'value_loss':value_loss.item(),'entropy':entropy.item(),
+              'actor_grad_norm':actor_grad_norm.item(),'critic_grad_norm':critic_grad_norm.item(),'approx_kl':approx_kl.item(),
+              'clipfracs':sum(clipfracs)/len(clipfracs)}
     else:
       return None
