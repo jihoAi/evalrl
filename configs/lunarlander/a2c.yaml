@@ -1,9 +1,7 @@
 num_steps: 5
 actor_lr: 0.00083
 critic_lr: 0.00083
-lr_schedule: linear
+lr_schedule: constant
 gae_lambda: 1.0
-ent_coef: 0.001
+ent_coef: 0.00001
 max_grad_norm: 0.5
-gamma: 0.995
-activation: tanh
