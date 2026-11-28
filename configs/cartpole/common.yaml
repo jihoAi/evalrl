@@ -1,5 +1,3 @@
-# 모든 알고리즘 공통 설정 (공정성 항목)
-# 비교 실험에서는 이 값들을 알고리즘별 YAML에서 덮어쓰지 않는다.
 # seed, run_dir은 Runner가 실행마다 채운다.
 
 env_id: CartPole-v1
